@@ -14,7 +14,9 @@ load_dotenv()
 
 # Import routes
 from app.routes.search import router as search_router
+from app.routes.jobs import router as jobs_router
 from app.models import HealthResponse
+from app.jobs import job_manager_lifespan, get_job_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,10 +59,19 @@ async def lifespan(app: FastAPI):
             # Don't exit here - let the app start but log the issue
             logger.warning("Browser test failed but continuing with application startup")
         
+        # Start job manager workers
+        logger.info("Starting job manager...")
+        job_manager = get_job_manager()
+        await job_manager.start_workers()
+        logger.info("✅ Job manager started successfully")
+        
         logger.info("Application startup complete")
         yield
     finally:
         # Cleanup
+        logger.info("Stopping job manager...")
+        job_manager = get_job_manager()
+        await job_manager.stop_workers()
         logger.info("Application shutdown")
 
 
@@ -94,6 +105,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(search_router, prefix="/api", tags=["search"])
+app.include_router(jobs_router, prefix="/api", tags=["jobs"])
 
 
 @app.get("/", response_model=HealthResponse)

@@ -4,6 +4,8 @@ Pydantic models for API request/response structures
 from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 from enum import Enum
+from datetime import datetime
+import uuid
 
 
 class PriceRange(str, Enum):
@@ -127,3 +129,92 @@ class ErrorResponse(BaseModel):
     detail: str = Field(..., description="Error detail message")
     type: str = Field(..., description="Error type")
     code: Optional[int] = Field(default=None, description="Error code")
+
+
+# ============================================================================
+# JOB SYSTEM MODELS
+# ============================================================================
+
+class JobStatus(str, Enum):
+    """Job execution status"""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class JobType(str, Enum):
+    """Type of job being executed"""
+    FOOD_SEARCH = "food_search"
+    RESTAURANT_SEARCH = "restaurant_search"
+    HEALTH_CHECK = "health_check"
+
+
+class JobProgress(BaseModel):
+    """Job progress information"""
+    current_step: int = Field(default=0, description="Current step number")
+    total_steps: int = Field(default=1, description="Total number of steps")
+    step_description: Optional[str] = Field(default=None, description="Description of current step")
+    progress_percentage: float = Field(default=0.0, ge=0.0, le=100.0, description="Progress percentage")
+
+
+class JobRequest(BaseModel):
+    """Request to create a new job"""
+    job_type: JobType = Field(..., description="Type of job to execute")
+    job_data: Dict[str, Any] = Field(..., description="Job-specific data")
+    priority: int = Field(default=1, ge=1, le=10, description="Job priority (1=lowest, 10=highest)")
+    timeout_seconds: int = Field(default=300, description="Job timeout in seconds")
+    
+    # For food search jobs, job_data should contain SearchRequest fields
+    # Example: {"location": "Buenos Aires", "food_types": ["pizza"], ...}
+
+
+class Job(BaseModel):
+    """Job model with all metadata"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique job ID")
+    status: JobStatus = Field(default=JobStatus.PENDING, description="Current job status")
+    job_type: JobType = Field(..., description="Type of job")
+    job_data: Dict[str, Any] = Field(..., description="Job input data")
+    
+    # Execution metadata
+    created_at: datetime = Field(default_factory=datetime.now, description="Job creation time")
+    started_at: Optional[datetime] = Field(default=None, description="Job start time")
+    completed_at: Optional[datetime] = Field(default=None, description="Job completion time")
+    
+    # Progress tracking
+    progress: JobProgress = Field(default_factory=JobProgress, description="Job progress")
+    
+    # Results and error handling
+    result: Optional[Dict[str, Any]] = Field(default=None, description="Job result data")
+    error_message: Optional[str] = Field(default=None, description="Error message if failed")
+    
+    # Configuration
+    priority: int = Field(default=1, description="Job priority")
+    timeout_seconds: int = Field(default=300, description="Job timeout")
+    retry_count: int = Field(default=0, description="Number of retries attempted")
+    max_retries: int = Field(default=3, description="Maximum retry attempts")
+
+
+class JobResponse(BaseModel):
+    """Response when creating or querying a job"""
+    job_id: str = Field(..., description="Unique job ID")
+    status: JobStatus = Field(..., description="Current job status")
+    message: str = Field(..., description="Human-readable status message")
+    
+    # Optional fields based on status
+    progress: Optional[JobProgress] = Field(default=None, description="Job progress if running")
+    result: Optional[Dict[str, Any]] = Field(default=None, description="Job result if completed")
+    error_message: Optional[str] = Field(default=None, description="Error message if failed")
+    
+    # Timing information
+    created_at: datetime = Field(..., description="Job creation time")
+    estimated_completion: Optional[datetime] = Field(default=None, description="Estimated completion time")
+
+
+class JobListResponse(BaseModel):
+    """Response for listing multiple jobs"""
+    jobs: List[JobResponse] = Field(..., description="List of jobs")
+    total_count: int = Field(..., description="Total number of jobs")
+    page: int = Field(default=1, description="Current page number")
+    page_size: int = Field(default=20, description="Jobs per page")
