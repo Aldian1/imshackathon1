@@ -1,4 +1,4 @@
-# Use Microsoft's official Playwright Python image as base
+# Use Microsoft's official Playwright Python image as base - UPDATED 2025-08-02
 FROM mcr.microsoft.com/playwright/python:v1.53.0-noble
 
 # Set working directory
@@ -33,8 +33,10 @@ COPY . .
 # Make start script executable
 RUN chmod +x start.sh
 
-# The Playwright image already has a proper user setup, just ensure permissions
+# Just ensure permissions work - let the base image handle users
 RUN chmod -R 755 /app /ms-playwright
+
+# Don't change users - use whatever the base Playwright image provides
 
 # Expose port
 EXPOSE 8000
