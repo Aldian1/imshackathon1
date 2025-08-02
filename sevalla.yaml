@@ -1,0 +1,40 @@
+# Sevalla deployment configuration
+version: "1.0"
+
+# Application configuration
+app:
+  name: "rappi-agent-api"
+  type: "python"
+  entry_point: "start.sh"
+  
+# Build configuration  
+build:
+  commands:
+    - "pip install -r requirements.txt"
+    - "playwright install chromium --with-deps"
+    
+# Runtime configuration
+runtime:
+  python_version: "3.11"
+  
+# Health check
+health_check:
+  path: "/health"
+  port: 8000
+  
+# Environment variables (set these in Sevalla dashboard)
+environment:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - GOOGLE_API_KEY
+  - HEADLESS=true
+  - BROWSER_USE_HEADLESS=true
+  - USE_VISION=true
+  - MAX_STEPS=30
+  - LOG_LEVEL=INFO
+  - CORS_ORIGINS
+  
+# Resource allocation
+resources:
+  memory: "1GB"
+  cpu: "1"

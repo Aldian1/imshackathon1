@@ -1,0 +1,35 @@
+# FastAPI and web framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Browser Use and browser automation
+browser-use
+playwright
+
+# AI/LLM integrations
+openai
+anthropic
+langchain
+langchain-openai
+
+# Data handling and validation
+pydantic
+pydantic-settings
+
+# Environment and configuration
+python-dotenv
+
+# HTTP and networking
+httpx
+aiohttp
+
+# Development and testing
+pytest
+pytest-asyncio
+black
+flake8
+
+# Additional utilities
+python-json-logger
+pillow
