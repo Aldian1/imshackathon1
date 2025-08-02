@@ -46,21 +46,57 @@ class RappiAgent:
             temperature=0.1
         )
         
-        # Set up browser session for local development (force headless mode)
+        # Set up browser session for production deployment
         headless_mode = os.getenv("HEADLESS", "true").lower() == "true"
         
         # Additional Browser Use specific environment variables
         os.environ["BROWSER_USE_HEADLESS"] = "true"
-        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = ""  # Use default path
+        
+        # Configure playwright browsers path for production
+        browsers_path = os.getenv("PLAYWRIGHT_BROWSERS_PATH", "")
+        if browsers_path and browsers_path != "":
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browsers_path
+        
+        # Browser arguments for containerized/production environment
+        browser_args = [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows", 
+            "--disable-renderer-backgrounding",
+            "--disable-features=TranslateUI,VizDisplayCompositor",
+            "--disable-ipc-flooding-protection",
+            "--enable-features=NetworkService",
+            "--force-color-profile=srgb",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-extensions-except=/tmp/ublock,/tmp/clearurls,/tmp/cookies",
+            "--disable-component-extensions-with-background-pages",
+            "--disable-default-apps",
+            "--mute-audio",
+            "--no-first-run",
+            "--no-default-browser-check"
+        ]
+        
+        # For very low memory environments, add single-process mode
+        if os.getenv("DISABLE_DEV_SHM_USAGE", "false").lower() == "true":
+            browser_args.extend([
+                "--memory-pressure-off",
+                "--max_old_space_size=4096"
+            ])
         
         self.browser_profile = BrowserProfile(
             headless=headless_mode,
             viewport_size={"width": 1920, "height": 1080},
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            browser_args=browser_args
         )
         
         logger.info(f"RappiAgent initialized with model: {self.config.llm_model}")
         logger.info(f"Browser headless mode: {headless_mode}")
+        logger.info(f"Browser args: {browser_args}")
+        logger.info(f"Playwright browsers path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH', 'default')}")
 
     async def search_food_options(self, search_request: SearchRequest) -> SearchResponse:
         """

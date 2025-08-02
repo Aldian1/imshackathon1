@@ -28,7 +28,35 @@ async def lifespan(app: FastAPI):
     
     # Startup
     try:
-        # Initialize any startup processes here
+        # Test browser availability at startup
+        logger.info("Testing browser initialization...")
+        
+        # Import here to avoid circular imports
+        from playwright.sync_api import sync_playwright
+        
+        try:
+            with sync_playwright() as p:
+                logger.info("Testing chromium launch...")
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu'
+                    ]
+                )
+                logger.info("✅ Chromium launched successfully")
+                browser.close()
+                logger.info("✅ Browser test completed successfully")
+        except Exception as browser_error:
+            logger.error(f"❌ Browser test failed: {str(browser_error)}")
+            logger.error(f"Error type: {type(browser_error).__name__}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            # Don't exit here - let the app start but log the issue
+            logger.warning("Browser test failed but continuing with application startup")
+        
         logger.info("Application startup complete")
         yield
     finally:

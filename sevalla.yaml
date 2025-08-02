@@ -10,8 +10,16 @@ app:
 # Build configuration  
 build:
   commands:
+    # Install system dependencies first
+    - "apt-get update && apt-get install -y wget gnupg ca-certificates"
+    # Install required system libraries for chromium
+    - "apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxss1 libasound2 libatspi2.0-0 libgtk-3-0 libxshmfence1"
+    # Install Python dependencies
     - "pip install -r requirements.txt"
-    - "playwright install chromium --with-deps"
+    # Install playwright browsers with verbose output
+    - "playwright install chromium --with-deps --verbose"
+    # Verify installation
+    - "playwright --version && ls -la ~/.cache/ms-playwright/"
     
 # Runtime configuration
 runtime:
@@ -33,8 +41,15 @@ environment:
   - MAX_STEPS=30
   - LOG_LEVEL=INFO
   - CORS_ORIGINS
+  # Browser Use specific environment variables
+  - PLAYWRIGHT_BROWSERS_PATH=/home/app/.cache/ms-playwright
+  - PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
+  - DISABLE_DEV_SHM_USAGE=true
+  # Debug environment variables
+  - DEBUG=pw:browser
+  - BROWSER_USE_DEBUG=true
   
-# Resource allocation
+# Resource allocation - increased for browser operations
 resources:
-  memory: "1GB"
-  cpu: "1"
+  memory: "2GB"
+  cpu: "2"
