@@ -2,9 +2,12 @@
 Browser Use agent for searching food options on rappi.com.ar
 
 Rappi.com.ar usage notes for automation:
-- The delivery location is set via the location selector at the TOP LEFT of the page.
-- Do NOT use the main search bar to set the location; the search bar is only for searching restaurants or products, not for changing the delivery address.
-- When you add your first product to the cart, Rappi may show a modal dialog asking for the delivery address. Be prepared to enter the address at that point if it was not set before.
+- PRIORITY: Focus on searching for restaurants first, location setting is secondary
+- The delivery location can be optionally set via the element with selector 'div[data-qa="address-container"]' at the TOP LEFT
+- Do NOT spend time getting stuck on location/address entry - proceed with default location if available
+- The main search bar is for searching restaurants or products, not for changing addresses
+- If location setting fails immediately, skip it and work with whatever restaurants are showing
+- Maximum 1-2 attempts at location setting, then proceed with search regardless
 """
 
 import asyncio
@@ -175,8 +178,8 @@ class RappiAgent:
                 llm=self.llm,
                 browser_session=browser_session,
                 use_vision=self.config.use_vision,
-                max_actions_per_step=5,
-                max_steps=30
+                max_actions_per_step=3,  # Reduced to prevent getting stuck on complex actions
+                max_steps=25  # Reduced to ensure faster completion
             )
             
             # Execute the search
@@ -234,12 +237,14 @@ class RappiAgent:
 
         preferences = search_request.preferences
         task_parts = [
-            "Go to rappi.com.ar and search for food delivery options.",
+            "Go to rappi.com.ar and immediately start searching for food delivery options.",
             (
-                "IMPORTANT: The delivery location must be set using the location selector at the TOP LEFT of the page. "
-                "Do NOT use the main search bar to set the location, as it only searches for restaurants or products, not addresses. "
-                f"Set the delivery location to: {search_request.location}. "
-                "If a modal dialog appears asking for the address (for example, after adding your first product), enter the address there as well."
+                "PRIORITY: Focus on searching for restaurants and food options first. "
+                "The main goal is to find and extract restaurant information, not to set up location. "
+                f"LOCATION HANDLING: If needed, the location can be set to '{search_request.location}' using the element with selector 'div[data-qa=\"address-container\"]' at the top left. "
+                "However, DO NOT spend time trying to set location if it's not immediately obvious or if it causes delays. "
+                "You can proceed with the default location if restaurants are already showing. "
+                "IMPORTANT: Do not get stuck on address entry - if location setting is not working immediately, skip it and focus on searching for food options."
             ),
         ]
         
@@ -271,6 +276,13 @@ class RappiAgent:
         # Instructions for data extraction
         extraction_instructions = f"""
         
+        SEARCH STRATEGY:
+        - Start browsing restaurants immediately without waiting for location confirmation
+        - Use the main search functionality to find restaurants
+        - If you see restaurants loading, proceed with data extraction
+        - Only attempt location setting if absolutely necessary and only for 1-2 attempts max
+        - Never spend more than 30 seconds on location/address entry
+        
         Extract information for up to {search_request.max_results} restaurants, including:
         1. Restaurant name
         2. Cuisine type
@@ -291,7 +303,7 @@ class RappiAgent:
         
         Return the results in a structured JSON format that can be easily parsed.
         Focus on accuracy and include real prices and delivery information.
-        If a restaurant doesn't deliver to the specified location, skip it.
+        Work with whatever restaurants are available - don't get stuck on location verification.
         """
         
         task_parts.append(extraction_instructions)
