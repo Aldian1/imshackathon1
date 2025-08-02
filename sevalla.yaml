@@ -4,27 +4,8 @@ version: "1.0"
 # Application configuration
 app:
   name: "rappi-agent-api"
-  type: "python"
-  entry_point: "start.sh"
-  
-# Build configuration  
-build:
-  commands:
-    # Install system dependencies first
-    - "apt-get update && apt-get install -y wget gnupg ca-certificates"
-    # Install required system libraries for chromium
-    - "apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxss1 libasound2 libatspi2.0-0 libgtk-3-0 libxshmfence1"
-    # Install Python dependencies
-    - "pip install -r requirements.txt"
-    # Install playwright browsers with verbose output
-    - "playwright install chromium --with-deps --verbose"
-    # Verify installation
-    - "playwright --version && ls -la ~/.cache/ms-playwright/"
-    
-# Runtime configuration
-runtime:
-  python_version: "3.11"
-  
+  type: "docker"
+  dockerfile: "Dockerfile"
 # Health check
 health_check:
   path: "/health"
@@ -32,22 +13,17 @@ health_check:
   
 # Environment variables (set these in Sevalla dashboard)
 environment:
+  # API Keys (required)
   - OPENAI_API_KEY
   - ANTHROPIC_API_KEY
   - GOOGLE_API_KEY
-  - HEADLESS=true
-  - BROWSER_USE_HEADLESS=true
+  # Application settings
   - USE_VISION=true
   - MAX_STEPS=30
   - LOG_LEVEL=INFO
   - CORS_ORIGINS
-  # Browser Use specific environment variables
-  - PLAYWRIGHT_BROWSERS_PATH=/home/app/.cache/ms-playwright
-  - PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
-  - DISABLE_DEV_SHM_USAGE=true
-  # Debug environment variables
+  # Browser settings (optional - defaults set in Dockerfile)
   - DEBUG=pw:browser
-  - BROWSER_USE_DEBUG=true
   
 # Resource allocation - increased for browser operations
 resources:

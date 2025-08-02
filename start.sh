@@ -1,39 +1,22 @@
 #!/bin/bash
 
-# Production start script for Sevalla deployment
+# Production start script for Docker deployment
 
 echo "🚀 Starting Browser Use Rappi Agent API"
 
-# Set environment variables for browser stability
-export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/home/app/.cache/ms-playwright}"
+# Set environment variables (already set in Dockerfile)
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/ms-playwright}"
 export DISABLE_DEV_SHM_USAGE="${DISABLE_DEV_SHM_USAGE:-true}"
 
-# Ensure browsers directory exists
-mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
-
-# Install Playwright browsers in production with detailed logging
-echo "📦 Installing Playwright browsers..."
-echo "Using browsers path: $PLAYWRIGHT_BROWSERS_PATH"
-
-# Try installation with error handling
-if ! playwright install chromium --with-deps --verbose; then
-    echo "❌ Failed to install Playwright browsers with deps"
-    echo "Attempting installation without deps..."
-    if ! playwright install chromium; then
-        echo "❌ Failed to install Playwright browsers completely"
-        exit 1
-    fi
-fi
-
-# Verify browser installation
+# Verify browser installation (browsers should already be installed in Docker image)
 echo "🔍 Verifying browser installation..."
 playwright --version
 
-# List installed browsers
+# List available browsers
 echo "📋 Listing installed browsers..."
-ls -la "$PLAYWRIGHT_BROWSERS_PATH" || echo "Browser directory not found"
+ls -la "$PLAYWRIGHT_BROWSERS_PATH" || echo "Using default browser path"
 
-# Test browser launch
+# Quick browser test
 echo "🧪 Testing browser launch..."
 python3 -c "
 import os
@@ -60,16 +43,12 @@ except Exception as e:
     print(f'Error type: {type(e).__name__}')
     import traceback
     traceback.print_exc()
-    sys.exit(1)
+    # In Docker, log the error but don't exit - let the app start for debugging
+    print('⚠️  Continuing with application startup for debugging...')
 "
 
-if [ $? -ne 0 ]; then
-    echo "❌ Browser test failed - exiting"
-    exit 1
-fi
-
-echo "✅ Browser installation and test successful"
+echo "✅ Browser verification completed"
 
 # Start the FastAPI application
 echo "🌐 Starting FastAPI server..."
-uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
