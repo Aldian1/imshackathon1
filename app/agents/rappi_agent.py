@@ -1,6 +1,12 @@
 """
 Browser Use agent for searching food options on rappi.com.ar
+
+Rappi.com.ar usage notes for automation:
+- The delivery location is set via the location selector at the TOP LEFT of the page.
+- Do NOT use the main search bar to set the location; the search bar is only for searching restaurants or products, not for changing the delivery address.
+- When you add your first product to the cart, Rappi may show a modal dialog asking for the delivery address. Be prepared to enter the address at that point if it was not set before.
 """
+
 import asyncio
 import os
 import json
@@ -225,11 +231,16 @@ class RappiAgent:
 
     def _build_search_task(self, search_request: SearchRequest) -> str:
         """Build the task description for the Browser Use agent"""
-        
+
         preferences = search_request.preferences
         task_parts = [
             "Go to rappi.com.ar and search for food delivery options.",
-            f"Set the delivery location to: {search_request.location}",
+            (
+                "IMPORTANT: The delivery location must be set using the location selector at the TOP LEFT of the page. "
+                "Do NOT use the main search bar to set the location, as it only searches for restaurants or products, not addresses. "
+                f"Set the delivery location to: {search_request.location}. "
+                "If a modal dialog appears asking for the address (for example, after adding your first product), enter the address there as well."
+            ),
         ]
         
         # Add search query if specified
