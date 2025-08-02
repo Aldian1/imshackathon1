@@ -57,6 +57,9 @@ class RappiAgent:
         if browsers_path and browsers_path != "":
             os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browsers_path
         
+        # Force browser installation if not found (Nixpacks fallback)
+        self._ensure_browser_available()
+        
         # Browser arguments for containerized/production environment
         browser_args = [
             "--no-sandbox",
@@ -97,6 +100,50 @@ class RappiAgent:
         logger.info(f"Browser headless mode: {headless_mode}")
         logger.info(f"Browser args: {browser_args}")
         logger.info(f"Playwright browsers path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH', 'default')}")
+
+    def _ensure_browser_available(self):
+        """Ensure chromium browser is available, install if needed"""
+        try:
+            # Quick test to see if chromium is available
+            import subprocess
+            result = subprocess.run(
+                ["python", "-c", "from playwright.sync_api import sync_playwright; p = sync_playwright(); p.start(); p.chromium.launch(headless=True).close()"],
+                capture_output=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                logger.info("✅ Chromium browser is available")
+                return
+        except Exception as e:
+            logger.warning(f"Browser test failed: {e}")
+
+        # Browser not available, try to install
+        logger.warning("❌ Chromium not found, attempting installation...")
+        try:
+            import subprocess
+            
+            # Install playwright first if not installed
+            logger.info("Installing playwright...")
+            subprocess.run(["pip", "install", "playwright"], check=True)
+            
+            # Install chromium browser
+            logger.info("Installing chromium browser...")
+            result = subprocess.run(["playwright", "install", "chromium"], 
+                                  capture_output=True, text=True, timeout=120)
+            
+            if result.returncode != 0:
+                logger.error(f"Playwright install failed: {result.stderr}")
+                # Try with deps
+                logger.info("Trying with system dependencies...")
+                subprocess.run(["playwright", "install-deps", "chromium"], timeout=180)
+                subprocess.run(["playwright", "install", "chromium"], timeout=120)
+            
+            logger.info("✅ Browser installation completed")
+            
+        except Exception as install_error:
+            logger.error(f"❌ Failed to install browser: {install_error}")
+            logger.error("Browser Use may not work properly")
+            # Don't raise - let the app continue and fail gracefully
 
     async def search_food_options(self, search_request: SearchRequest) -> SearchResponse:
         """

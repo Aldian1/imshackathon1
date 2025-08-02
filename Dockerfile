@@ -33,15 +33,8 @@ COPY . .
 # Make start script executable
 RUN chmod +x start.sh
 
-# Create non-root user for security
-RUN groupadd --gid 1000 app && \
-    useradd --uid 1000 --gid app --shell /bin/bash --create-home app
-
-# Set ownership of app directory
-RUN chown -R app:app /app /ms-playwright
-
-# Switch to non-root user
-USER app
+# The Playwright image already has a proper user setup, just ensure permissions
+RUN chmod -R 755 /app /ms-playwright
 
 # Expose port
 EXPOSE 8000
