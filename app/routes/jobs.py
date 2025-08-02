@@ -4,7 +4,7 @@ Job system API endpoints
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.models import (
     JobRequest, JobResponse, JobListResponse, Job, JobStatus, JobType,
@@ -53,7 +53,7 @@ async def create_job(job_request: JobRequest) -> JobResponse:
             message="Job created successfully",
             created_at=job.created_at,
             estimated_completion=datetime.now().replace(second=0, microsecond=0) + 
-                              job_request.timeout_seconds * 0.8  # Estimate 80% of timeout
+                              timedelta(seconds=job_request.timeout_seconds * 0.8)  # Estimate 80% of timeout
         )
         
     except Exception as e:
